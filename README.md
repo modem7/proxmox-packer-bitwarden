@@ -1,59 +1,50 @@
-# proxmox-packer-bitwarden
+# packer-proxmox-template
+Packer Image Build Template Code For Proxmox
 
-Packer Build Template Code For Proxmox with Bitwarden-cli support.
-
-## Installing Bitwarden CLI
-
-```bash
-apt install unzip curl
-curl -SLo bw.zip 'https://vault.bitwarden.com/download/?app=cli&platform=linux'
-unzip -o bw.zip -d /usr/local/bin
-rm -f bw.zip
-chmod +x /usr/local/bin/bw
+### Installing Bitwarden CLI
+#### Install Github CLI:
+```
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+sudo apt update
+sudo apt install gh
 ```
 
-## Login to Bitwarden CLI
+#### Install Bitwarden CLI
+```
+sudo apt install unzip
+gh release list -R bitwarden/clients - get latest version
+gh release download cli-v2022.10.0 -p 'bw-linux-*.zip' -R bitwarden/clients -D /tmp/
+unzip /tmp/bw-linux-*.zip
+sudo install bw /usr/local/bin/
+rm -f /tmp/bw-linux-*.zip bw
+```
 
-Further information: <https://bitwarden.com/help/personal-api-key/>
-
-```bash
+#### Login to Bitwarden CLI
+```
 bw config server https://bitwarden.example.com
 bw login --apikey
 ```
 
-## Create your secrets in Bit/Vaultwarden
-
-In Bit/Vaultwarden:
-
-```text
-- Add Item.
-- Secure Note.
-- Set the name and set the secret in the "notes" field.
-- Modify `credentials.sh` with your variables.
-- Modify `variables.pkr.hcl` with your variables.
+### Validate Packer Config
+```
+packer validate -var-file=credentials.pkr.hcl ubuntu-server-focal-docker.pkr.hcl
 ```
 
-## Validate Packer Config
-
-```bash
-cd ubuntu-cloud-jammy-master
-packer validate .
+### Initialise Packer Config
+```
+packer init ubuntu-server-focal-docker.pkr.hcl
 ```
 
-## Source Bitwarden Variables
-
-```bash
-source ./credentials.sh
+### Build Packer Config
+```
+packer build -var-file=credentials.pkr.hcl ubuntu-server-focal-docker.pkr.hcl
 ```
 
-## Initialise Packer Config
+---
 
-```bash
-packer init .
+### Build Packer config with Vaultwarden
+```
+source ../credentials.sh && packer build ubuntu-server-jammy.pkr.hcl
 ```
 
-## Build Packer Config
-
-```bash
-packer build .
-```
