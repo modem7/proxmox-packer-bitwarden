@@ -4,11 +4,12 @@ autoinstall:
   refresh-installer:
     update: true
     channel: stable
-  locale: en_GB
+  locale: ${vm_guest_os_language}
   keyboard:
-    layout: gb
+    layout: ${vm_guest_os_keyboard}
   apt:
     geoip: true
+    preserve_sources_list: false
   ssh:
     install-server: true
     allow-pw: true
@@ -46,15 +47,10 @@ autoinstall:
     layout:
       name: direct
   user-data:
-    timezone: geoip
+    disable_root: false
+    timezone: ${vm_guest_os_timezone}
     users:
-      - name: packer
-        gecos: Packer User
-        no_user_group: true
-        groups: [adm, sudo]
-        lock-passwd: true
-        homedir: /tmp/packer
-        sudo: ALL=(ALL) NOPASSWD:ALL
+      - name: root # Using root as it won't create a new user. We'll leave that up to cloud-init.
         shell: /bin/bash
         ssh_authorized_keys:
          - ${ssh_key}
@@ -62,5 +58,3 @@ autoinstall:
     - sed -i '/^\/swap.img/d' /target/etc/fstab
     - swapoff -a
     - rm -rf /target/swap.img
-
-

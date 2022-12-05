@@ -3,6 +3,7 @@
 # Packer Template to create an Ubuntu Server (jammy) on Proxmox
 
 packer {
+  required_version = ">= 1.8.4"
   required_plugins {
     proxmox = {
       version = ">= 1.1.0"
@@ -15,60 +16,7 @@ packer {
   }
 }
 
-# Variable Definitions
-// variable "proxmox_api_url" {
-//     type = string
-//     sensitive = true
-// }
-
-variable "proxmox_api_url" {
-  type    = string
-  sensitive = true
-  default = "${env("PROX_API_URL")}"
-  validation {
-    condition     = length(var.proxmox_api_url) > 0
-    error_message = <<EOF
-The PROX_API_URL environment variable must be set.
-EOF
-  }
-}
-
-// variable "proxmox_api_token_id" {
-//     type = string
-//     sensitive = true
-// }
-
-variable "proxmox_api_token_id" {
-  type    = string
-  sensitive = true
-  default = "${env("PROX_API_ID")}"
-  validation {
-    condition     = length(var.proxmox_api_token_id) > 0
-    error_message = <<EOF
-The PROX_API_ID environment variable must be set.
-EOF
-  }
-}
-
-// variable "proxmox_api_token_secret" {
-//     type = string
-//     sensitive = true
-// }
-
-variable "proxmox_api_token_secret" {
-  type    = string
-  sensitive = true
-  default = "${env("PROX_API_SECRET")}"
-  validation {
-    condition     = length(var.proxmox_api_token_secret) > 0
-    error_message = <<EOF
-The PROX_API_SECRET environment variable must be set.
-EOF
-  }
-}
-
-data "sshkey" "install" {
-  name = "packer"
+data "sshkey" "packer" {
   type = "ed25519"
 }
 
@@ -80,65 +28,65 @@ source "proxmox" "ubuntu-server-jammy" {
     username = "${var.proxmox_api_token_id}"
     token = "${var.proxmox_api_token_secret}"
     # (Optional) Skip TLS Verification
-    insecure_skip_tls_verify = true
+    insecure_skip_tls_verify = "${var.insecure_skip_tls_verify}"
     
     # VM General Settings
-    node = "proxmox" # add your proxmox node
-#    vm_id = "100"
-    vm_name = "ubuntu-server-jammy-packer"
-    template_description = "Ubuntu Server Jammy Image"
+    node = "${var.node}" # add your proxmox node
+    vm_id = "${var.vm_id}"
+    vm_name = "${var.vm_name}"
+    template_description = "${var.template_description}"
 
     # VM OS ISO Settings
     # (Option 1) Local ISO File - Download Ubuntu ISO and Upload To Proxmox Server
-    iso_file = "Proxmox:iso/ubuntu-22.04.1-live-server-amd64.iso"
+    iso_file = "${var.iso_path}/${var.iso_file}"
     # - or -
     # (Option 2) Download ISO
     #iso_url = "https://releases.ubuntu.com/20.04/ubuntu-20.04.5-live-server-amd64.iso"
     #iso_checksum = "5035be37a7e9abbdc09f0d257f3e33416c1a0fb322ba860d42d74aa75c3468d4"
-    iso_storage_pool = "Proxmox"
-    unmount_iso = true
+    iso_storage_pool = "${var.iso_storage_pool}"
+    unmount_iso = "${var.unmount_iso}"
 
     # VM OS Settings
-    os = "l26"
+    os = "${var.vm_os}"
 
     # VM System Settings
-    qemu_agent = true
+    qemu_agent = "${var.vm_qemu_agent}"
 
     # VM Cloud-Init Settings
-    cloud_init = true
-    cloud_init_storage_pool = "Proxmox"
+    cloud_init = "${var.vm_cloud_init}"
+    cloud_init_storage_pool = "${var.vm_cloud_init_storage_pool}"
 
     # VM Hard Disk Settings
-    scsi_controller = "virtio-scsi-single"
+    scsi_controller = "${var.vm_scsi_controller}"
 
     disks {
-        disk_size = "15G"
-        format = "qcow2"
-        storage_pool = "Proxmox"
-        storage_pool_type = "directory"
-        type = "scsi"
-        cache_mode = "writethrough"
-        io_thread = true
+        disk_size = "${var.vm_disk_size}"
+        format = "${var.vm_format}"
+        storage_pool = "${var.vm_storage_pool}"
+        storage_pool_type = "${var.vm_storage_pool_type}"
+        type = "${var.vm_type}"
+        cache_mode = "${var.vm_cache_mode}"
+        io_thread = "${var.vm_io_thread}"
     }
 
     # VM CPU Settings
-    cores = "2"
-    cpu_type = "host"
-    machine = "q35"
+    cores = "${var.vm_cores}"
+    cpu_type = "${var.vm_cpu_type}"
+    machine = "${var.vm_machine}"
 #    https://github.com/hashicorp/packer-plugin-proxmox/pull/90 and https://github.com/hashicorp/packer-plugin-proxmox/pull/93/files#diff-3cb137113817aa6a0421e15ce1ffe3fc66365d1ea99dd19237e50c578e7c8751
 #    bios = "ovmf"
 #    efidisk = "Proxmox"
     
     # VM Memory Settings
-    memory = "2048" 
+    memory = "${var.vm_memory}" 
 
     # VM Network Settings
     network_adapters {
-        model = "virtio"
-        bridge = "vmbr1"
-        firewall = "false"
-        vlan_tag = "50"
-        packet_queues = "2"
+        model = "${var.vm_model}" 
+        bridge = "${var.vm_bridge}" 
+        firewall = "${var.vm_firewall}" 
+        vlan_tag = "${var.vm_vlan_tag}" 
+        packet_queues = "${var.vm_cores}"
     }
 
     # PACKER Boot Commands
@@ -157,24 +105,30 @@ source "proxmox" "ubuntu-server-jammy" {
     #http_directory = "http"
     http_content = {
       "/meta-data" = file("http/meta-data")
-      "/user-data" = templatefile("http/user-data.pkrtpl.hcl", { ssh_key = data.sshkey.install.public_key })
+      "/user-data" = templatefile("http/user-data.pkrtpl.hcl", {
+      ssh_key                  = data.sshkey.packer.public_key
+      build_username           = var.build_username
+      vm_guest_os_language     = var.vm_guest_os_language
+      vm_guest_os_keyboard     = var.vm_guest_os_keyboard
+      vm_guest_os_timezone     = var.vm_guest_os_timezone
+    })
     }
     # (Optional) Bind IP Address and Port
-    http_bind_address = "192.168.50.100"
-    http_port_min = 8802
-    http_port_max = 8802
+    http_bind_address = "${var.http_bind_address}"
+    http_port_min = "${var.http_port_min}"
+    http_port_max = "${var.http_port_max}"
 
     # (Option 1) Add your Password here
     # ssh_password = "Xm2Y6vZVcViPnhFm"
     # - or -
     # (Option 2) Add your Private SSH KEY file here
     # ssh_clear_authorized_keys = true
-    ssh_username = "packer"
-    ssh_private_key_file = "${data.sshkey.install.private_key_path}"
-    ssh_clear_authorized_keys = true
+    ssh_username = "${var.ssh_username}"
+    ssh_private_key_file = "${data.sshkey.packer.private_key_path}"
+    ssh_clear_authorized_keys = "${var.ssh_clear_authorized_keys}"
 
     # Raise the timeout, when installation takes longer
-    ssh_timeout = "30m"
+    ssh_timeout = "${var.communicator_timeout}"
 }
 
 # Build Definition to create the VM Template
@@ -252,7 +206,7 @@ build {
             "sudo sync"
         ]
     }
-
+  
     # Add additional provisioning scripts here
     # ...
 }
