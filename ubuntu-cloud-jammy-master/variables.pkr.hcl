@@ -6,20 +6,7 @@
 //  BLOCK: variable
 //  Defines the input variables.
 
-// Proxmox Credentials
-
-// Proxmox API URL
-variable "proxmox_api_url" {
-  type    = string
-  default = "${env("PROX_API_URL")}"
-  validation {
-    condition     = length(var.proxmox_api_url) > 0
-    error_message = <<EOF
-The PROX_API_URL environment variable must be set.
-EOF
-  }
-}
-
+// Bitwarden Variable definitions
 // Proxmox Token ID
 variable "proxmox_api_token_id" {
   type    = string
@@ -46,6 +33,61 @@ EOF
   }
 }
 
+// Postfix
+// Postfix Username
+variable "postfix_user" {
+  type    = string
+  sensitive = true
+  default = "${env("POSTFIX_USER")}"
+  validation {
+    condition     = length(var.postfix_user) > 0
+    error_message = <<EOF
+The PROX_API_SECRET environment variable must be set.
+EOF
+  }
+}
+
+// Postfix Pass
+variable "postfix_pass" {
+  type    = string
+  sensitive = true
+  default = "${env("POSTFIX_PASS")}"
+  validation {
+    condition     = length(var.postfix_pass) > 0
+    error_message = <<EOF
+The PROX_API_SECRET environment variable must be set.
+EOF
+  }
+}
+
+// Postfix Domain
+variable "postfix_domain" {
+  type    = string
+  sensitive = true
+  default = "${env("POSTFIX_DOMAIN")}"
+  validation {
+    condition     = length(var.postfix_domain) > 0
+    error_message = <<EOF
+The POSTFIX_DOMAIN environment variable must be set.
+EOF
+  }
+}
+
+// Postfix Relay
+variable "postfix_relay" {
+  type    = string
+  sensitive = true
+  default = "${env("POSTFIX_RELAY")}"
+  validation {
+    condition     = length(var.postfix_relay) > 0
+    error_message = <<EOF
+The POSTFIX_RELAY environment variable must be set.
+EOF
+  }
+}
+
+variable "proxmox_host" {}
+variable "proxmox_port" {}
 variable "build_username" {}
 variable "build_password_encrypted" {}
 variable "node" {}
@@ -74,6 +116,9 @@ variable "vm_cloud_init" {
   default     = true
 }
 variable "vm_cloud_init_storage_pool" {}
+variable "vm_cloud_init_user" {}
+variable "vm_cloud_init_pass" {}
+variable "vm_cloud_init_ssh_key" {}
 variable "vm_scsi_controller" {}
 variable "vm_format" {}
 variable "vm_id" {
@@ -109,3 +154,6 @@ variable "http_port_min" {}
 variable "http_port_max" {}
 variable "ssh_username" {}
 variable "ssh_clear_authorized_keys" {}
+
+// Swap
+variable "swap_size" {}
