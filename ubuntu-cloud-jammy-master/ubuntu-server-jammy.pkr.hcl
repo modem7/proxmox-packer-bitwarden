@@ -13,18 +13,20 @@ packer {
       version = ">= 1.0.7"
       source = "github.com/ivoronin/sshkey"
     }
+    // ansible = {
+    //   version = ">= 1.0.2"
+    //   source  = "github.com/hashicorp/ansible"
+    // }
   }
 }
 
-data "sshkey" "packer" {
-  type = "ed25519"
-}
+data "sshkey" "packer" {}
 
 # Resource definitions for the VM Template
 source "proxmox" "ubuntu-server-jammy" {
  
     # Proxmox Connection Settings
-    proxmox_url = "${var.proxmox_api_url}"
+    proxmox_url = "https://${var.proxmox_host}:${var.proxmox_port}/api2/json"
     username = "${var.proxmox_api_token_id}"
     token = "${var.proxmox_api_token_secret}"
     # (Optional) Skip TLS Verification
@@ -111,8 +113,7 @@ source "proxmox" "ubuntu-server-jammy" {
       vm_guest_os_language     = var.vm_guest_os_language
       vm_guest_os_keyboard     = var.vm_guest_os_keyboard
       vm_guest_os_timezone     = var.vm_guest_os_timezone
-    })
-    }
+    })}
     # (Optional) Bind IP Address and Port
     http_bind_address = "${var.http_bind_address}"
     http_port_min = "${var.http_port_min}"
@@ -133,80 +134,137 @@ source "proxmox" "ubuntu-server-jammy" {
 
 # Build Definition to create the VM Template
 build {
-
     name = "ubuntu-server-jammy"
     sources = ["source.proxmox.ubuntu-server-jammy"]
 
     # Transfer config files to template
     provisioner "file" {
-        source = "files/configs"
-        destination = "/tmp/configs/"
+      source = "files/configs"
+      destination = "/tmp/configs/"
     }
 
-    # Copying configs across
+    # Copying scripts across
     provisioner "shell" {
-        inline = [
-            "sudo cp /tmp/configs/99-pve.cfg /etc/cloud/cloud.cfg.d/99-pve.cfg",
-            "sudo cp /tmp/configs/00proxy /etc/apt/apt.conf.d/00proxy"
-        ]
+      inline = [
+        "sudo cp /tmp/configs/99-pve.cfg /etc/cloud/cloud.cfg.d/99-pve.cfg",
+        "sudo cp /tmp/configs/00proxy /etc/apt/apt.conf.d/00proxy",
+        "sudo cp /tmp/configs/51unattended-upgrades /etc/apt/apt.conf.d/51unattended-upgrades"
+      ]
     }
 
     # Creating Swap
     provisioner "shell" {
-        inline = [
-            "sudo fallocate -l 2G /swapfile",
-            "sudo chmod 600 /swapfile",
-            "sudo mkswap /swapfile",
-            "sudo swapon /swapfile",
-            "echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab"
-        ]
+      inline = [
+        "sudo fallocate -l ${var.swap_size} /swapfile",
+        "sudo chmod 600 /swapfile",
+        "sudo mkswap /swapfile",
+        "sudo swapon /swapfile",
+        "echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab"
+      ]
+    }
+
+    # Installing Postfix
+    provisioner "shell" {
+      inline = [
+        "sudo postconf -e 'smtp_sasl_auth_enable=yes'",
+        "sudo postconf -e 'smtp_sasl_password_maps=hash:/etc/postfix/sasl_passwd'",
+        "sudo postconf -e 'relayhost=[${var.postfix_relay}]:587'",
+        "sudo postconf -e 'mydestination=$myhostname, ${var.postfix_domain}, localhost.home.lan, localhost'",
+        "sudo postconf -e 'smtp_sasl_security_options=noanonymous'",
+        "sudo postconf -e 'smtp_tls_security_level=may'",
+        "sudo postconf -e 'readme_directory=no'",
+        "sudo postconf -e 'header_size_limit=4096000'",
+        "sudo echo '[${var.postfix_relay}]:587      ${var.postfix_user}:${var.postfix_pass}' > /etc/postfix/sasl_passwd",
+        "sudo postmap /etc/postfix/sasl_passwd",
+        "sudo chmod 0600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db",
+      ]
     }
 
     # Removing Snap
     provisioner "shell" {
-        inline = [
-            "sudo rm -rf /var/cache/snapd",
-            "sudo apt autoremove -y --purge snapd gnome-software-plugin-snap",
-            "sudo rm -rf ~/snap",
-            "sudo apt-mark hold snapd",
-            "sudo systemctl daemon-reload"
-        ]
+      inline = [
+        "sudo rm -rf /var/cache/snapd",
+        "sudo apt-get autoremove -y --purge snapd gnome-software-plugin-snap",
+        "sudo rm -rf ~/snap",
+        "sudo apt-mark hold snapd",
+        "sudo systemctl daemon-reload"
+      ]
     }
 
     # Deleting tmp directories
     provisioner "shell" {
-        inline = [
-            "sudo rm -rf /tmp/*",
-            "sudo rm -rf /var/tmp/*"
-        ]
+      inline = [
+        "sudo rm -rf /tmp/*",
+        "sudo rm -rf /var/tmp/*"
+      ]
     }
 
     # Enabling FSTrim + changing Tuned profile
     provisioner "shell" {
-        inline = [
-            "sudo fstrim -av",
-            "sudo systemctl enable --now tuned",
-            "sudo tuned-adm profile virtual-guest",
-            "sudo systemctl enable fstrim.timer"
-        ]
+      inline = [
+        "sudo fstrim -av",
+        "sudo systemctl enable fstrim.timer",
+        "sudo systemctl enable --now tuned",
+        "sudo tuned-adm profile virtual-guest"
+      ]
+    }
+
+    # Randomise build user password
+    provisioner "shell" {
+      inline = [
+        "p=$(pwgen -1 -sn 32)",
+        "echo ${var.build_username}:$p | sudo chpasswd",
+        "echo \"===>${var.build_username} password changed to $p\"",
+      ]
     }
 
     # Provisioning the VM Template for Cloud-Init Integration in Proxmox. Needs to be last.
     provisioner "shell" {
-        inline = [
-            "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
-            "sudo rm /etc/ssh/ssh_host_*",
-            "sudo truncate -s 0 /etc/machine-id",
-            "sudo apt -y autoremove --purge",
-            "sudo apt -y clean",
-            "sudo apt -y autoclean",
-            "sudo cloud-init clean",
-            "sudo sync",
-            "sudo rm -f /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg",
-            "sudo sync"
-        ]
+      inline = [
+        "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
+        "sudo rm /etc/ssh/ssh_host_*",
+        "sudo truncate -s 0 /etc/machine-id",
+        "sudo service rsyslog stop",
+        "sudo [ -f /var/log/audit/audit.log ] && sudo truncate -s 0 /var/log/audit/audit.log",
+        "sudo [ -f /var/log/wtmp ] && sudo truncate -s 0 /var/log/wtmp",
+        "sudo [ -f /var/log/lastlog ] && sudo truncate -s 0 /var/log/lastlog",
+        "sudo [ -f /etc/udev/rules.d/70-persistent-net.rules ] && sudo rm -fv /etc/udev/rules.d/70-persistent-net.rules",
+        "sudo [ -f /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg ] && sudo rm -fv /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg",
+        "sudo rm -rf /tmp/*",
+        "sudo rm -rf /var/tmp/*",
+        "sudo apt-get -y autoremove --purge",
+        "sudo apt-get -y clean",
+        "sudo apt-get -y autoclean",
+        "sudo cloud-init clean",
+        "sync"
+      ]
     }
   
     # Add additional provisioning scripts here
     # ...
+
+   # Set up Cloud-Init as the builder can't yet do this.
+   # Be aware on line 249, there are some hardcoded overrides. Make sure to update as you require.
+    post-processors {
+      post-processor "shell-local" {
+        inline = [
+#    https://github.com/hashicorp/packer-plugin-proxmox/pull/90 and https://github.com/hashicorp/packer-plugin-proxmox/pull/93/files#diff-3cb137113817aa6a0421e15ce1ffe3fc66365d1ea99dd19237e50c578e7c8751
+#          "ssh root@proxmox qm set ${build.ID} --efidisk0 ${var.vm_cloud_init_storage_pool}:0,efitype=4m,,format=qcow2,pre-enrolled-keys=1,size=528K",
+          "ssh root@proxmox qm set ${build.ID} --rng0 source=/dev/urandom",
+          "ssh root@proxmox qm set ${build.ID} --agent enabled=1,fstrim_cloned_disks=1",
+          "ssh root@proxmox qm set ${build.ID} --ipconfig0 ip=dhcp",
+          "ssh root@proxmox qm set ${build.ID} --ciuser     ${var.vm_cloud_init_user}",
+          "ssh root@proxmox qm set ${build.ID} --cipassword ${var.vm_cloud_init_pass}",
+          "ssh root@proxmox qm set ${build.ID} --scsi0 ${var.vm_storage_pool}:${build.ID}/base-${build.ID}-disk-0.qcow2,cache=${var.vm_cache_mode},discard=on,iothread=1,ssd=1",
+        ]
+      }
+      post-processor "shell-local" {
+        environment_vars = ["SSH_KEY=${var.vm_cloud_init_ssh_key}"]
+        inline = [
+          "ssh root@proxmox \"echo $SSH_KEY > /tmp/tmpssh.pub\"",
+          "ssh root@proxmox qm set ${build.ID} --sshkey /tmp/tmpssh.pub",
+          "ssh root@proxmox rm -v /tmp/tmpssh.pub"
+        ]
+      }
+    }
 }

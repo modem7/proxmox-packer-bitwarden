@@ -1,0 +1,24 @@
+# Allowed Origins
+Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}";
+        "${distro_id}:${distro_codename}-security";
+        // Extended Security Maintenance; doesn't necessarily exist for
+        // every release and this system may not have it installed, but if
+        // available, the policy for updates is such that unattended-upgrades
+        // should also install from here by default.
+        "${distro_id}ESMApps:${distro_codename}-apps-security";
+        "${distro_id}ESM:${distro_codename}-infra-security";
+        "${distro_id}:${distro_codename}-updates";
+        "Docker:${distro_codename}";
+};
+
+# Mail
+Unattended-Upgrade::Mail "modem7@gmail.com";
+Unattended-Upgrade::MailReport "on-change";
+
+# Auto remove
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+
+# Auto reboot
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "06:00";

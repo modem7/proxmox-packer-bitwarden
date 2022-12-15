@@ -21,28 +21,32 @@ autoinstall:
   package_reboot_if_required: true
   updates: all
   packages:
-    - qemu-guest-agent
-    - sudo
+    - acl
+    - aptitude
     - bash-completion
+    - cloud-guest-utils
     - cloud-init
     - cloud-utils
-    - cloud-guest-utils
-    - git
     - curl
-    - mlocate
-    - resolvconf
-    - htop
-    - net-tools
     - dnsutils
-    - aptitude
-    - unzip
+    - git
+    - htop
+    - libsasl2-modules
+    - mlocate
+    - needrestart
+    - net-tools
+    - openssl
+    - postfix
+    - pwgen
+    - qemu-guest-agent
+    - resolvconf
+    - sudo
+    - tldr
     - tuned
     - tuned-utils
     - tuned-utils-systemtap
-    - tldr
-    - needrestart
-    - acl
-    - libsasl2-modules
+    - unattended-upgrades
+    - unzip
   storage:
     layout:
       name: direct
