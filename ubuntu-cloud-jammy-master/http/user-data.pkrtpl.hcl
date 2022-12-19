@@ -20,33 +20,14 @@ autoinstall:
   package_upgrade: true
   package_reboot_if_required: true
   updates: all
-  packages:
-    - acl
-    - aptitude
-    - bash-completion
+  packages: # Basic Packages. Additional can be installed via packages.sh script.
     - cloud-guest-utils
     - cloud-init
     - cloud-utils
-    - curl
-    - dnsutils
-    - git
-    - htop
-    - libsasl2-modules
-    - mlocate
-    - needrestart
-    - net-tools
-    - openssl
-    - postfix
-    - pwgen
     - qemu-guest-agent
-    - resolvconf
-    - sudo
-    - tldr
     - tuned
     - tuned-utils
     - tuned-utils-systemtap
-    - unattended-upgrades
-    - unzip
   storage:
     layout:
       name: direct
