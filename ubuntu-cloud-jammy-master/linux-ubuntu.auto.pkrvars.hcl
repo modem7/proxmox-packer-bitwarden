@@ -24,6 +24,11 @@ vm_guest_os_language       = "en_GB"
 vm_guest_os_keyboard       = "gb"
 vm_guest_os_timezone       = "geoip"
 
+// Default Account Credentials
+build_username             = "root"
+// To create encrypted password: mkpasswd --method=SHA-512 --rounds=4096
+build_password_encrypted   = ""
+
 // Virtual Machine Hardware Settings
 template_description       = "Ubuntu Server Jammy Image"
 vm_os                      = "l26"
@@ -57,11 +62,6 @@ swap_size                  = "2G"
 
 // Boot Settings
 vm_boot_wait               = "5s"
-
-// Default Account Credentials
-build_username             = "root"
-// To create encrypted password: mkpasswd --method=SHA-512 --rounds=4096
-build_password_encrypted   = ""
 
 // Communicator Settings
 communicator_timeout       = "30m"

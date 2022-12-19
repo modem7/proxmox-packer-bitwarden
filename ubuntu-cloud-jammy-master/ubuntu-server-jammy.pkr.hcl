@@ -152,7 +152,7 @@ build {
     provisioner "shell" {
       inline = [
         "sudo cp /tmp/configs/00proxy /etc/apt/apt.conf.d/00proxy",
-        "sudo cp /tmp/configs/51unattended-upgrades /etc/apt/apt.conf.d/51unattended-upgrades"
+        "sudo cp /tmp/configs/51unattended-upgrades /etc/apt/apt.conf.d/51unattended-upgrades",
         "sudo cp /tmp/configs/99-pve.cfg /etc/cloud/cloud.cfg.d/99-pve.cfg",
       ]
     }
@@ -167,7 +167,8 @@ build {
         "POSTFIX_USER=${var.postfix_user}",
         "POSTFIX_PASS=${var.postfix_pass}",
       ]
-      execute_command = "echo '${var.password}' | sudo -S -E bash '{{ .Path }}'"
+      execute_command = "sudo -S env {{ .Vars }} {{ .Path }}"
+      inline_shebang  = "/bin/bash -ex"
       scripts = [
         "${path.root}/files/scripts/swap.sh",
         "${path.root}/files/scripts/packages.sh",
