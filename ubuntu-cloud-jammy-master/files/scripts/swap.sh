@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Variables
-SWAP_SIZE"${SWAP_SIZE:-2G}"
+SWAP_SIZE="${SWAP_SIZE:-2G}"
 
 # Remove Snap
 echo "===> Creating Swap File"

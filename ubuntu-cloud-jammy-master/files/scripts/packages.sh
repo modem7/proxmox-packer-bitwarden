@@ -1,11 +1,14 @@
 #!/bin/sh
 
+# Updating APT
+apt update
+
 # Install Additional Packages
 echo "===> Installing additional packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get install -y \
     acl \
-    aptitude \ 
+    aptitude \
     bash-completion \
     curl \
     dnsutils \
