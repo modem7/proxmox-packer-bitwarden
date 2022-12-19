@@ -49,7 +49,7 @@ vm_cpu_type                = "host"
 vm_machine                 = "q35"
 vm_model                   = "virtio"
 vm_bridge                  = "vmbr1"
-vm_firewall                = "true"
+vm_firewall                = "false"
 vm_vlan_tag                = "50"
 
 // Swap Settings
