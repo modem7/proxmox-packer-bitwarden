@@ -1,8 +1,10 @@
 # proxmox-packer-bitwarden
+
 Packer Image Build Template Code For Proxmox with Bitwarden-cli support.
 
-### Installing Bitwarden CLI
-```
+## Installing Bitwarden CLI
+
+```bash
 apt install unzip curl
 curl -SLo bw.zip 'https://vault.bitwarden.com/download/?app=cli&platform=linux'
 unzip -o bw.zip -d /usr/local/bin
@@ -10,16 +12,20 @@ rm -f bw.zip
 chmod +x /usr/local/bin/bw
 ```
 
-### Login to Bitwarden CLI
-Further information: https://bitwarden.com/help/personal-api-key/
-```
+## Login to Bitwarden CLI
+
+Further information: <https://bitwarden.com/help/personal-api-key/>
+
+```bash
 bw config server https://bitwarden.example.com
 bw login --apikey
 ```
 
-### Create your secrets in Bit/Vaultwarden:
+## Create your secrets in Bit/Vaultwarden
+
 In Bit/Vaultwarden:
-```
+
+```text
 - Add Item.
 - Secure Note.
 - Set the name and set the secret in the "notes" field.
@@ -27,24 +33,27 @@ In Bit/Vaultwarden:
 - Modify `variables.pkr.hcl` with your variables.
 ```
 
-### Validate Packer Config
-```
+## Validate Packer Config
+
+```bash
 cd ubuntu-cloud-jammy-master
 packer validate .
 ```
 
-### Source Bitwarden Variables
-```
+## Source Bitwarden Variables
+
+```bash
 source ./credentials.sh
 ```
 
-### Initialise Packer Config
-```
+## Initialise Packer Config
+
+```bash
 packer init .
 ```
 
-### Build Packer Config
-```
+## Build Packer Config
+
+```bash
 packer build .
 ```
-
