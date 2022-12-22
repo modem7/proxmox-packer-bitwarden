@@ -194,6 +194,7 @@ build {
           "ssh root@proxmox qm set ${build.ID} --ciuser     ${var.vm_cloud_init_user}",
           "ssh root@proxmox qm set ${build.ID} --cipassword ${var.vm_cloud_init_pass}",
           "ssh root@proxmox qm set ${build.ID} --scsi0 ${var.vm_storage_pool}:${build.ID}/base-${build.ID}-disk-0.qcow2,cache=${var.vm_cache_mode},discard=on,iothread=1,ssd=1",
+          "ssh root@proxmox qm set ${build.ID} --delete ide2", // Delete the DVD drive.
         ]
       }
     // Set Cloud-Init SSH key
