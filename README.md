@@ -1,6 +1,6 @@
 # proxmox-packer-bitwarden
 
-Packer Image Build Template Code For Proxmox with Bitwarden-cli support.
+Packer Build Template Code For Proxmox with Bitwarden-cli support.
 
 ## Installing Bitwarden CLI
 
