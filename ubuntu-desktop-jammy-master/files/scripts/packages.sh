@@ -12,7 +12,6 @@ apt-get install -y \
     bash-completion \
     curl \
     dnsutils \
-    firefox \
     git \
     htop \
     mlocate \

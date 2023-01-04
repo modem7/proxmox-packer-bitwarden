@@ -39,6 +39,14 @@ autoinstall:
         shell: /bin/bash
         ssh_authorized_keys:
          - ${ssh_key}
+      - name: ansible # https://cloudinit.readthedocs.io/en/latest/topics/examples.html#configure-instance-to-be-managed-by-ansible
+        gecos: Ansible User
+        groups: sudo
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        shell: /bin/bash
+        lock_passwd: true
+        ssh_authorized_keys:
+          - ${ssh_key}
   late-commands:
     - sed -i '/^\/swap.img/d' /target/etc/fstab
     - swapoff -a

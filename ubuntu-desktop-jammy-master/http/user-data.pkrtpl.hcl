@@ -28,6 +28,13 @@ autoinstall:
     - tuned
     - tuned-utils
     - tuned-utils-systemtap
+    - ubuntu-desktop
+  snaps:
+    - name: firefox
+    - name: gnome-3-38-2004
+    - name: gtk-common-themes
+    - name: snap-store
+    - name: snapd-desktop-integration
   storage:
     layout:
       name: direct
@@ -39,6 +46,16 @@ autoinstall:
         shell: /bin/bash
         ssh_authorized_keys:
          - ${ssh_key}
+      - name: ansible # https://cloudinit.readthedocs.io/en/latest/topics/examples.html#configure-instance-to-be-managed-by-ansible
+        gecos: Ansible User
+        groups: sudo
+        sudo: ALL=(ALL) NOPASSWD:ALL
+        shell: /bin/bash
+        lock_passwd: true
+        ssh_authorized_keys:
+          - ${ssh_key}
+  early-commands:
+    - echo 'linux-generic-hwe-22.04' > /run/kernel-meta-package
   late-commands:
     - sed -i '/^\/swap.img/d' /target/etc/fstab
     - swapoff -a

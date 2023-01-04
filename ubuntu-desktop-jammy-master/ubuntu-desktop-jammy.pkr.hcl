@@ -171,6 +171,7 @@ build {
       inline_shebang  = "/bin/bash -ex"
       scripts = [
         "${path.root}/files/scripts/swap.sh",
+        "${path.root}/files/scripts/desktop_postinstall.sh",
         "${path.root}/files/scripts/packages.sh",
         "${path.root}/files/scripts/postfix.sh",
         "${path.root}/files/scripts/cleanup.sh",
@@ -191,6 +192,7 @@ build {
           "ssh root@proxmox qm set ${build.ID} --agent enabled=1,fstrim_cloned_disks=1",
           "ssh root@proxmox qm set ${build.ID} --ipconfig0 ip=dhcp",
           "ssh root@proxmox qm set ${build.ID} --ciuser     ${var.vm_cloud_init_user}",
+          "ssh root@proxmox qm set ${build.ID} --vga virtio-gl",
           "ssh root@proxmox qm set ${build.ID} --cipassword ${var.vm_cloud_init_pass}",
           "ssh root@proxmox qm set ${build.ID} --scsi0 ${var.vm_storage_pool}:${build.ID}/base-${build.ID}-disk-0.qcow2,cache=${var.vm_cache_mode},discard=on,iothread=1,ssd=1",
           "ssh root@proxmox qm set ${build.ID} --delete ide2", // Delete the DVD drive.

@@ -10,14 +10,14 @@
 node                       = "proxmox"
 proxmox_host               = "192.168.0.251"
 proxmox_port               = "8006"
-vm_name                    = "ubuntu-server-jammy-packer"
+vm_name                    = "ubuntu-desktop-jammy-packer"
 insecure_skip_tls_verify   = "true"
 unmount_iso                = "true"
 
 // Removable Media Settings
 iso_storage_pool           = "Proxmox"
 iso_path                   = "Proxmox:iso"
-iso_file                   = "ubuntu-22.04.1-desktop-amd64.iso"
+iso_file                   = "ubuntu-22.04.1-live-server-amd64.iso"
 
 // Guest Operating System Metadata
 vm_guest_os_language       = "en_GB"
