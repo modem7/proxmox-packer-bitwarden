@@ -23,10 +23,6 @@ echo "=============================================================="
 echo "===> $BUILD_USER password changed to $p"
 echo "=============================================================="
 
-# Clean up current SSH keys
-echo "===> Cleaning up SSH Host Keys"
-rm /etc/ssh/ssh_host_*
-
 # Truncate machine-id
 echo "===> Truncating Machine-ID"
 truncate -s 0 /etc/machine-id

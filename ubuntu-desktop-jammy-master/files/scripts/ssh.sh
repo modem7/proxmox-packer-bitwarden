@@ -4,65 +4,77 @@
 SSHCONF="/etc/ssh/sshd_config"
 SSHUSERS="modem7"
 
-awk '$5 >= 3071' /etc/ssh/moduli > /etc/ssh/moduli.tmp && mv /etc/ssh/moduli.tmp /etc/ssh/moduli
+# Re-generate the RSA and ED25519 keys
+rm /etc/ssh/ssh_host_*
+ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N ""
+ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N ""
 
-sed -i "/PermitRootLogin/c\PermitRootLogin no" /etc/ssh/sshd_config
-bash -c 'echo "Protocol 2" >> /etc/ssh/sshd_config'
+# Remove small Diffie-Hellman moduli
+awk '$5 >= 3071' /etc/ssh/moduli > /etc/ssh/moduli.safe
+mv /etc/ssh/moduli.safe /etc/ssh/moduli
 
-sed -i "/HostKey \/etc\/ssh\/ssh_host_ed25519_key/c\HostKey \/etc\/ssh\/ssh_host_ed25519_key" /etc/ssh/sshd_config
-sed -i "/HostKey \/etc\/ssh\/ssh_host_ecdsa_key/c\HostKey \/etc\/ssh\/ssh_host_ecdsa_key" /etc/ssh/sshd_config
-sed -i "/HostKey \/etc\/ssh\/ssh_host_rsa_key/c\HostKey \/etc\/ssh\/ssh_host_rsa_key" /etc/ssh/sshd_config
+# Enable the RSA and ED25519 keys
+# Enable the RSA and ED25519 HostKey directives in the /etc/ssh/sshd_config file:
+sed -i 's/^\#HostKey \/etc\/ssh\/ssh_host_\(rsa\|ed25519\)_key$/HostKey \/etc\/ssh\/ssh_host_\1_key/g' ${SSHCONF}
 
-# bash -c 'echo "AllowUsers '$SSHUSERS'" >> /etc/ssh/sshd_config'
+# Restrict supported key exchange, cipher, and MAC algorithms
+tee ${SSHCONF}.d/ssh-audit_hardening.conf << EOF
+# Restrict key exchange, cipher, and MAC algorithms, as per sshaudit.com hardening guide.
+KexAlgorithms sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org,gss-curve25519-sha256-,diffie-hellman-group16-sha512,gss-group16-sha512-,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha256
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,umac-128-etm@openssh.com
+HostKeyAlgorithms ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,sk-ssh-ed25519@openssh.com,sk-ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com
+EOF
 
-sed -i "/LogLevel/c\LogLevel VERBOSE" /etc/ssh/sshd_config
+sed -i "/PermitRootLogin/c\PermitRootLogin no" ${SSHCONF}
+echo "Protocol 2" >> ${SSHCONF}
 
-sed -i "/LoginGraceTime/c\LoginGraceTime 1m" /etc/ssh/sshd_config
+# echo "AllowUsers '$SSHUSERS'" >> ${SSHCONF}
 
-sed -i "/MaxAuthTries/c\MaxAuthTries 3" /etc/ssh/sshd_config
-sed -i "/MaxSessions/c\MaxSessions 2" /etc/ssh/sshd_config
+sed -i "/LogLevel/c\LogLevel VERBOSE" ${SSHCONF}
 
-sed -i "/#PubkeyAuthentication yes/c\PubkeyAuthentication yes" /etc/ssh/sshd_config
+sed -i "/LoginGraceTime/c\LoginGraceTime 1m" ${SSHCONF}
 
-sed -i "/PasswordAuthentication/c\PasswordAuthentication no" /etc/ssh/sshd_config
-sed -i "/PermitEmptyPasswords/c\PermitEmptyPasswords no" /etc/ssh/sshd_config
+sed -i "/MaxAuthTries/c\MaxAuthTries 3" ${SSHCONF}
+sed -i "/MaxSessions/c\MaxSessions 2" ${SSHCONF}
 
-sed -i "/ChallengeResponseAuthentication/c\ChallengeResponseAuthentication no" /etc/ssh/sshd_config
+sed -i "/#PubkeyAuthentication yes/c\PubkeyAuthentication yes" ${SSHCONF}
 
-sed -i "/GSSAPIAuthentication/c\GSSAPIAuthentication no" /etc/ssh/sshd_config
-sed -i "/KerberosAuthentication/c\KerberosAuthentication no" /etc/ssh/sshd_config
+sed -i "/PasswordAuthentication/c\PasswordAuthentication no" ${SSHCONF}
+sed -i "/PermitEmptyPasswords/c\PermitEmptyPasswords no" ${SSHCONF}
 
-sed -i "/UsePAM/c\UsePAM no" /etc/ssh/sshd_config
+sed -i "/ChallengeResponseAuthentication/c\ChallengeResponseAuthentication no" ${SSHCONF}
 
-sed -i "/AllowAgentForwarding/c\AllowAgentForwarding yes" /etc/ssh/sshd_config
+sed -i "/GSSAPIAuthentication/c\GSSAPIAuthentication no" ${SSHCONF}
+sed -i "/KerberosAuthentication/c\KerberosAuthentication no" ${SSHCONF}
 
-sed -i "/AllowStreamLocalForwarding/c\AllowStreamLocalForwarding no" /etc/ssh/sshd_config
+sed -i "/UsePAM/c\UsePAM no" ${SSHCONF}
 
-sed -i "/X11Forwarding/c\X11Forwarding yes" /etc/ssh/sshd_config
+sed -i "/AllowAgentForwarding/c\AllowAgentForwarding yes" ${SSHCONF}
 
-sed -i "/PrintMotd/c\PrintMotd no" /etc/ssh/sshd_config
+sed -i "/AllowStreamLocalForwarding/c\AllowStreamLocalForwarding no" ${SSHCONF}
 
-sed -i "/TCPKeepAlive/c\TCPKeepAlive yes" /etc/ssh/sshd_config
+sed -i "/X11Forwarding/c\X11Forwarding yes" ${SSHCONF}
 
-sed -i "/PermitUserEnvironment/c\PermitUserEnvironment no" /etc/ssh/sshd_config
+sed -i "/PrintMotd/c\PrintMotd no" ${SSHCONF}
 
-sed -i "/Compression/c\Compression no" /etc/ssh/sshd_config
+sed -i "/TCPKeepAlive/c\TCPKeepAlive yes" ${SSHCONF}
 
-bash -c 'echo "PermitOpen *:22" >> /etc/ssh/sshd_config'
+sed -i "/PermitUserEnvironment/c\PermitUserEnvironment no" ${SSHCONF}
 
-sed -i "/Banner none/c\Banner none" /etc/ssh/sshd_config
+sed -i "/Compression/c\Compression no" ${SSHCONF}
 
-sed -i "/Subsystem/c\Subsystem sftp \/usr\/lib\/sftp-server -f AUTHPRIV -l INFO" /etc/ssh/sshd_config
+echo "PermitOpen *:22" >> ${SSHCONF}
 
-bash -c 'echo "KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256" >> /etc/ssh/sshd_config'
-bash -c 'echo "Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config'
-bash -c 'echo "MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com"  >> /etc/ssh/sshd_config'
+sed -i "/Banner none/c\Banner none" ${SSHCONF}
 
-# tee -a /etc/ssh/sshd_config > /dev/null <<EOF
+sed -i "/Subsystem/c\Subsystem sftp \/usr\/lib\/sftp-server -f AUTHPRIV -l INFO" ${SSHCONF}
+
+# tee -a ${SSHCONF} > /dev/null <<EOF
 # Match User *,!$SSHUSERS
 #     ForceCommand /bin/echo 'This bastion does not support interactive commands.'
 # EOF
 
-sed -i "/ClientAliveInterval/c\ClientAliveInterval 180" /etc/ssh/sshd_config
+sed -i "/ClientAliveInterval/c\ClientAliveInterval 180" ${SSHCONF}
 
-sed -i "/RekeyLimit/c\RekeyLimit 1G 1h" /etc/ssh/sshd_config
+sed -i "/RekeyLimit/c\RekeyLimit 1G 1h" ${SSHCONF}
