@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Cleanup Temp directories
 echo "===> Cleaning up Temp Directories"

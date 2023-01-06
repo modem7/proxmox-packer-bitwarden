@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Variables
 SWAP_SIZE="${SWAP_SIZE:-2G}"

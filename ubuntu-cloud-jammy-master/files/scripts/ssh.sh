@@ -1,11 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 
 # Variables
 SSHCONF="/etc/ssh/sshd_config"
-SSHUSERS="modem7"
+#SSHUSERS="modem7" # Uncomment if you want to restrict to a user.
+#SSHPORT="32223" # Uncomment if you want to set a different SSH port
 
 # Re-generate the RSA and ED25519 keys
-rm /etc/ssh/ssh_host_*
+rm -f /etc/ssh/ssh_host_*
 ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N ""
 ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N ""
 
@@ -26,55 +27,327 @@ MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,umac-128-etm@op
 HostKeyAlgorithms ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,sk-ssh-ed25519@openssh.com,sk-ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com
 EOF
 
-sed -i "/PermitRootLogin/c\PermitRootLogin no" ${SSHCONF}
-echo "Protocol 2" >> ${SSHCONF}
+# AllowUsers
+if [ -v SSHUSERS ]
+then
+    echo " - Changing value AllowUsers to ${SSHUSERS}."
+    echo "AllowUsers ${SSHUSERS}" >> ${SSHCONF}
+    tee -a ${SSHCONF} > /dev/null << EOF
+    Match User *,!${SSHUSERS}
+    ForceCommand /bin/echo 'This bastion does not support interactive commands.'
+EOF
+fi
 
-# echo "AllowUsers '$SSHUSERS'" >> ${SSHCONF}
+# Port
+if [ -v SSHPORT ]
+then
+  SSHKEY="Port"
+  SSHVALUE="${SSHPORT}"
+  echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+  if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+    echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+  else
+    sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+    sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  fi
+fi
 
-sed -i "/LogLevel/c\LogLevel VERBOSE" ${SSHCONF}
+# PermitOpen
+if [ -v SSHPORT ]
+then
+  SSHKEY="PermitOpen"
+  SSHVALUE="*:${SSHPORT}"
+  echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+  if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+    echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+  else
+    sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+    sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  fi
+fi
 
-sed -i "/LoginGraceTime/c\LoginGraceTime 1m" ${SSHCONF}
+# Protocol
+SSHKEY="Protocol"
+SSHVALUE="2"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/MaxAuthTries/c\MaxAuthTries 3" ${SSHCONF}
-sed -i "/MaxSessions/c\MaxSessions 2" ${SSHCONF}
+# PermitRootLogin
+SSHKEY="PermitRootLogin"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/#PubkeyAuthentication yes/c\PubkeyAuthentication yes" ${SSHCONF}
+# LogLevel
+SSHKEY="LogLevel"
+SSHVALUE="VERBOSE"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/PasswordAuthentication/c\PasswordAuthentication no" ${SSHCONF}
-sed -i "/PermitEmptyPasswords/c\PermitEmptyPasswords no" ${SSHCONF}
+# LoginGraceTime
+SSHKEY="LoginGraceTime"
+SSHVALUE="1m"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/ChallengeResponseAuthentication/c\ChallengeResponseAuthentication no" ${SSHCONF}
+# MaxAuthTries
+SSHKEY="MaxAuthTries"
+SSHVALUE="3"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/GSSAPIAuthentication/c\GSSAPIAuthentication no" ${SSHCONF}
-sed -i "/KerberosAuthentication/c\KerberosAuthentication no" ${SSHCONF}
+# MaxSessions
+SSHKEY="MaxSessions"
+SSHVALUE="2"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/UsePAM/c\UsePAM no" ${SSHCONF}
+# PubkeyAuthentication
+SSHKEY="PubkeyAuthentication"
+SSHVALUE="yes"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/AllowAgentForwarding/c\AllowAgentForwarding yes" ${SSHCONF}
+# PasswordAuthentication
+SSHKEY="PasswordAuthentication"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/AllowStreamLocalForwarding/c\AllowStreamLocalForwarding no" ${SSHCONF}
+# PermitEmptyPasswords
+SSHKEY="PermitEmptyPasswords"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/X11Forwarding/c\X11Forwarding yes" ${SSHCONF}
+# ChallengeResponseAuthentication
+SSHKEY="ChallengeResponseAuthentication"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/PrintMotd/c\PrintMotd no" ${SSHCONF}
+# GSSAPIAuthentication
+SSHKEY="GSSAPIAuthentication"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/TCPKeepAlive/c\TCPKeepAlive yes" ${SSHCONF}
+# KerberosAuthentication
+SSHKEY="KerberosAuthentication"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/PermitUserEnvironment/c\PermitUserEnvironment no" ${SSHCONF}
+# UsePAM
+SSHKEY="UsePAM"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/Compression/c\Compression no" ${SSHCONF}
+# AllowTcpForwarding
+SSHKEY="AllowTcpForwarding"
+SSHVALUE="yes"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-echo "PermitOpen *:22" >> ${SSHCONF}
+# AllowAgentForwarding
+SSHKEY="AllowAgentForwarding"
+SSHVALUE="yes"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/Banner none/c\Banner none" ${SSHCONF}
+# AllowStreamLocalForwarding
+SSHKEY="AllowStreamLocalForwarding"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/Subsystem/c\Subsystem sftp \/usr\/lib\/sftp-server -f AUTHPRIV -l INFO" ${SSHCONF}
+# X11Forwarding
+SSHKEY="X11Forwarding"
+SSHVALUE="yes"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-# tee -a ${SSHCONF} > /dev/null <<EOF
-# Match User *,!$SSHUSERS
-#     ForceCommand /bin/echo 'This bastion does not support interactive commands.'
-# EOF
+# PrintMotd
+SSHKEY="PrintMotd"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/ClientAliveInterval/c\ClientAliveInterval 180" ${SSHCONF}
+# UseDNS
+SSHKEY="UseDNS"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
 
-sed -i "/RekeyLimit/c\RekeyLimit 1G 1h" ${SSHCONF}
+# TCPKeepAlive
+SSHKEY="TCPKeepAlive"
+SSHVALUE="yes"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
+
+# PermitUserEnvironment
+SSHKEY="PermitUserEnvironment"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
+
+# Compression
+SSHKEY="Compression"
+SSHVALUE="no"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
+
+# Banner
+SSHKEY="Banner"
+SSHVALUE="none"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
+
+# ClientAliveInterval
+SSHKEY="ClientAliveInterval"
+SSHVALUE="180"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
+
+# RekeyLimit
+SSHKEY="RekeyLimit"
+SSHVALUE="1G 1h"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi
+
+# Subsystem
+SSHKEY="Subsystem"
+SSHVALUE="Subsystem sftp \/usr\/lib\/sftp-server -f AUTHPRIV -l INFO"
+echo " - Changing value ${SSHKEY} to ${SSHVALUE}."
+if [ $(cat ${SSHCONF} | grep ${SSHKEY} | wc -l) -eq 0 ]; then
+  echo "${SSHKEY} ${SSHVALUE}" >> ${SSHCONF}
+else
+  sed -i -e "1,/#${SSHKEY} [a-zA-Z0-9].*/s/#${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+  sed -i -e "1,/${SSHKEY} [a-zA-Z0-9].*/s/${SSHKEY} [a-zA-Z0-9].*/${SSHKEY} ${SSHVALUE}/" ${SSHCONF}
+fi

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Updating APT
 apt update

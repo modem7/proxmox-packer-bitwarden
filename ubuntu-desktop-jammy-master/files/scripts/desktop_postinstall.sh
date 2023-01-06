@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Desktop Cleanup
 # Enable the boot splash
