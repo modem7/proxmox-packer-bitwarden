@@ -23,6 +23,7 @@ apt-get install -y -qq      \
             openssl         \
             pwgen           \
             resolvconf      \
+            swapspace       \
             tldr            \
             unzip
 

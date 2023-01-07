@@ -27,7 +27,7 @@ apt-get update -qq
 # Installing packages
 echo "===> Installing Docker packages"
 export DEBIAN_FRONTEND=noninteractive
-apt-get install -y -qq \
+apt-get install -qq -y \
         docker-ce      \
         docker-ce-cli  \
         containerd.io  \
