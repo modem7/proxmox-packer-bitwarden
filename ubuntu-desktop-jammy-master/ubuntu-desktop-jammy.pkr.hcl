@@ -173,7 +173,7 @@ build {
         "${path.root}/files/scripts/swap.sh",
         "${path.root}/files/scripts/desktop_postinstall.sh",
         "${path.root}/files/scripts/packages.sh",
-        // "${path.root}/files/scripts/docker.sh",
+        // "${path.root}/files/scripts/docker.sh", // Uncomment to install Docker Engine
         "${path.root}/files/scripts/postfix.sh",
         "${path.root}/files/scripts/cleanup.sh",
       ]
