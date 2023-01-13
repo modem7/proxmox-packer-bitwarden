@@ -15,9 +15,9 @@ FROM_EMAIL="${FROM_EMAIL:-$HOST@$MYDOMAIN}"
 # Install Postfix
 echo "===> Installing Postfix"
 export DEBIAN_FRONTEND=noninteractive
-apt-get install -y \
+apt-get install -y       \
         libsasl2-modules \
-        openssl \
+        openssl          \
         postfix
 
 # Configure Authentication files
