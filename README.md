@@ -2,6 +2,8 @@
 
 Packer Build Template Code For Proxmox with Bitwarden-cli support.
 
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/modem7)
+
 ## Installing Bitwarden CLI
 
 ```bash
